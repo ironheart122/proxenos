@@ -1,0 +1,42 @@
+{
+  "name": "proxenos",
+  "version": "0.1.0",
+  "description": "MCP server that lets Claude Code delegate tasks to Codex CLI workers (ChatGPT subscription or API-key auth) running in isolated git worktrees",
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "claude-code",
+    "subagent",
+    "orchestration",
+    "agent",
+    "delegation"
+  ],
+  "license": "MIT",
+  "type": "module",
+  "bin": {
+    "proxenos": "dist/index.js"
+  },
+  "files": [
+    "dist",
+    "examples"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "npm run build"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.12.0",
+    "picomatch": "^4.0.2",
+    "zod": "^3.24.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.0",
+    "@types/picomatch": "^3.0.1",
+    "typescript": "^5.8.0"
+  }
+}

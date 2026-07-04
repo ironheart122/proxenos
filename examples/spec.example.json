@@ -1,0 +1,28 @@
+{
+  "task": "Add a `formatCurrency(amountMinor: number, currency: string): string` utility to src/utils/format.ts that formats minor units (cents/paise) into a locale-aware string using Intl.NumberFormat. Follow the style of the existing formatDate function in the same file. Add unit tests mirroring the structure of src/utils/format.test.ts.",
+  "context": {
+    "workingDir": "/abs/path/to/repo",
+    "seedFiles": [
+      "src/utils/format.ts",
+      "src/utils/format.test.ts"
+    ],
+    "conventions": "Named exports only. Vitest for tests. No default exports."
+  },
+  "acceptanceCriteria": [
+    "formatCurrency is exported from src/utils/format.ts with the exact signature above",
+    "Tests cover INR, USD, and a zero amount",
+    "pnpm vitest run src/utils/format.test.ts exits 0",
+    "No files outside src/utils/ are modified"
+  ],
+  "constraints": {
+    "writeMode": "patch",
+    "allowedPaths": [
+      "src/utils/**"
+    ],
+    "timeoutMs": 600000
+  },
+  "verification": {
+    "command": "pnpm vitest run src/utils/format.test.ts"
+  },
+  "worker": "default"
+}

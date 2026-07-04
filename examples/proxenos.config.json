@@ -1,0 +1,7 @@
+{
+  "workers": {
+    "default": { "sandbox": "workspace-write" },
+    "spark":   { "model": "gpt-5.3-codex-spark", "sandbox": "workspace-write" },
+    "careful": { "sandbox": "workspace-write", "extraArgs": ["--ignore-rules"] }
+  }
+}
