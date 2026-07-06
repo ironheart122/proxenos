@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { readFileSync } from "node:fs";
-import { serve } from "./server.js";
+import { serve, serveHttp } from "./server.js";
 import { DispatchSpec } from "./schemas.js";
 import { startDelegation, getDelegation } from "./delegation/manager.js";
 
@@ -9,6 +9,11 @@ const USAGE = `proxenos — delegate coding tasks to foreign-model workers via M
 Usage:
   proxenos serve                 Start the MCP server (stdio). Register with:
                                  claude mcp add proxenos -- npx -y proxenos serve
+  proxenos serve --http [--port <n>]
+                                 Start a persistent MCP server on streamable
+                                 HTTP (loopback only, default port 8137).
+                                 Register with:
+                                 claude mcp add --transport http proxenos http://127.0.0.1:8137/mcp
   proxenos run --spec <file>     Run one delegation from a JSON spec file and
                                  print the result (for testing without MCP).
 `;
@@ -17,9 +22,20 @@ async function main(): Promise<void> {
   const [cmd, ...rest] = process.argv.slice(2);
 
   switch (cmd) {
-    case "serve":
-      await serve();
+    case "serve": {
+      if (rest.includes("--http")) {
+        const portIdx = rest.indexOf("--port");
+        const port = portIdx !== -1 && rest[portIdx + 1] ? Number(rest[portIdx + 1]) : 8137;
+        if (!Number.isInteger(port) || port <= 0 || port > 65535) {
+          console.error(`invalid --port value: ${rest[portIdx + 1]}`);
+          process.exit(1);
+        }
+        await serveHttp(port);
+      } else {
+        await serve();
+      }
       return;
+    }
 
     case "run": {
       const flagIdx = rest.indexOf("--spec");

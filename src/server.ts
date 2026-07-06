@@ -1,5 +1,7 @@
+import { createServer } from "node:http";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { z } from "zod";
 import { DispatchSpec } from "./schemas.js";
 import {
@@ -15,7 +17,7 @@ function json(payload: unknown) {
   return { content: [{ type: "text" as const, text: JSON.stringify(payload, null, 2) }] };
 }
 
-export async function serve(): Promise<void> {
+function buildServer(): McpServer {
   const server = new McpServer({ name: "proxenos", version: "0.1.0" });
 
   server.registerTool(
@@ -125,7 +127,69 @@ export async function serve(): Promise<void> {
     }
   );
 
+  return server;
+}
+
+export async function serve(): Promise<void> {
   const transport = new StdioServerTransport();
-  await server.connect(transport);
+  await buildServer().connect(transport);
   console.error("proxenos MCP server running on stdio");
+}
+
+/**
+ * Long-running HTTP mode for a persistent (e.g. systemd) deployment. Stateless
+ * streamable-HTTP: each POST gets a fresh McpServer/transport pair, but the
+ * delegation registry is module-level state in manager.ts, so every client
+ * session sees the same delegations. Binds to loopback only — there is no auth.
+ */
+export async function serveHttp(port: number): Promise<void> {
+  const httpServer = createServer(async (req, res) => {
+    if (new URL(req.url ?? "/", "http://localhost").pathname !== "/mcp") {
+      res.writeHead(404).end();
+      return;
+    }
+    if (req.method !== "POST") {
+      res.writeHead(405, { "content-type": "application/json" }).end(
+        JSON.stringify({
+          jsonrpc: "2.0",
+          error: { code: -32000, message: "Method not allowed — stateless server, POST only" },
+          id: null,
+        })
+      );
+      return;
+    }
+
+    const chunks: Buffer[] = [];
+    for await (const chunk of req) chunks.push(chunk as Buffer);
+    let body: unknown;
+    try {
+      body = JSON.parse(Buffer.concat(chunks).toString("utf8"));
+    } catch {
+      res.writeHead(400, { "content-type": "application/json" }).end(
+        JSON.stringify({
+          jsonrpc: "2.0",
+          error: { code: -32700, message: "Parse error" },
+          id: null,
+        })
+      );
+      return;
+    }
+
+    const server = buildServer();
+    const transport = new StreamableHTTPServerTransport({
+      sessionIdGenerator: undefined,
+      enableDnsRebindingProtection: true,
+      allowedHosts: ["127.0.0.1", `127.0.0.1:${port}`, "localhost", `localhost:${port}`],
+    });
+    res.on("close", () => {
+      void transport.close();
+      void server.close();
+    });
+    await server.connect(transport);
+    await transport.handleRequest(req, res, body);
+  });
+
+  httpServer.listen(port, "127.0.0.1", () => {
+    console.error(`proxenos MCP server listening on http://127.0.0.1:${port}/mcp`);
+  });
 }
