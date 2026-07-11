@@ -1,5 +1,5 @@
 import { randomBytes } from "node:crypto";
-import { execFile } from "node:child_process";
+import { spawn } from "node:child_process";
 import picomatch from "picomatch";
 import { loadConfig, resolveWorker } from "../config.js";
 import { runCodexWorker } from "../worker/codex.js";
@@ -107,13 +107,23 @@ async function runDelegation(
   // Orchestrator-side verification: the worker claiming it ran tests is not
   // trusted — this exit code is.
   let verification: DelegationResult["verification"] = null;
-  if (spec.verification && outcome.terminal === "finished" && !pathViolation) {
-    verification = await runVerification(wt.path, spec.verification.command, spec.verification.timeoutMs);
+  if (spec.verification && outcome.terminal === "finished" && !pathViolation && !cancellations.has(id)) {
+    record.lastAction = "running verification";
+    verification = await runVerification(
+      wt.path,
+      spec.verification.command,
+      spec.verification.timeoutMs,
+      () => cancellations.has(id)
+    );
   }
 
-  const status: DelegationStatus =
+  const cancelled = outcome.terminal === "cancelled" ||
+    (outcome.terminal === "finished" && cancellations.has(id));
+  let status: DelegationStatus =
     outcome.terminal === "finished"
-      ? pathViolation || (verification !== null && verification.exitCode !== 0)
+      ? cancelled
+        ? "cancelled"
+        : pathViolation || (verification !== null && verification.exitCode !== 0)
         ? "failed"
         : "completed"
       : outcome.terminal === "timeout"
@@ -123,14 +133,22 @@ async function runDelegation(
           : "failed";
 
   const keepBranch = spec.constraints.writeMode === "direct" && status === "completed";
-  await cleanupWorktree(spec.context.workingDir, wt, { keepBranch }).catch(() => {});
+  let cleanupError: string | null = null;
+  try {
+    await cleanupWorktree(spec.context.workingDir, wt, { keepBranch });
+  } catch (err) {
+    cleanupError = err instanceof Error ? err.message : String(err);
+    obstacles.push(`Could not finalize delegation worktree: ${cleanupError}`);
+    // A direct-mode result is unusable until its branch commit succeeds.
+    if (keepBranch) status = "failed";
+  }
 
   const result: DelegationResult = {
     status,
     summary: outcome.finish?.summary ?? outcome.error ?? `terminal state: ${outcome.terminal}`,
     filesTouched: touched,
     patch: spec.constraints.writeMode === "patch" && patch.trim() ? patch : null,
-    branch: keepBranch ? wt.branch : null,
+    branch: keepBranch && cleanupError === null ? wt.branch : null,
     verification,
     obstacles,
     criteriaMet: outcome.finish?.criteriaMet ?? null,
@@ -139,31 +157,74 @@ async function runDelegation(
 
   record.status = status;
   record.result = result;
-  record.error = outcome.error ?? null;
+  record.error = cleanupError ?? outcome.error ?? null;
   record.finishedAt = new Date().toISOString();
   cancellations.delete(id);
   persistRecord(record);
 }
 
-function runVerification(
+export function runVerification(
   cwd: string,
   command: string,
-  timeoutMs: number
+  timeoutMs: number,
+  isCancelled: () => boolean
 ): Promise<NonNullable<DelegationResult["verification"]>> {
   return new Promise((resolve) => {
-    execFile(
-      "bash",
-      ["-c", command],
-      { cwd, timeout: timeoutMs, maxBuffer: 8 * 1024 * 1024 },
-      (err, stdout, stderr) => {
-        const out = [stdout, stderr].filter(Boolean).join("\n");
-        const rawCode = (err as { code?: number | string } | null)?.code;
-        resolve({
-          command,
-          exitCode: err ? (typeof rawCode === "number" ? rawCode : 1) : 0,
-          outputTail: out.length > 4000 ? out.slice(-4000) : out,
-        });
+    if (isCancelled()) {
+      resolve({ command, exitCode: 1, outputTail: "verification cancelled" });
+      return;
+    }
+
+    const child = spawn("bash", ["-c", command], {
+      cwd,
+      stdio: ["ignore", "pipe", "pipe"],
+      detached: true,
+    });
+    let stdout = "";
+    let stderr = "";
+    let terminal: "timeout" | "cancelled" | null = null;
+    let settled = false;
+
+    const append = (current: string, chunk: Buffer) => (current + chunk.toString()).slice(-8_192);
+    const killHard = () => {
+      try {
+        if (child.pid) process.kill(-child.pid, "SIGKILL");
+        else child.kill("SIGKILL");
+      } catch {
+        child.kill("SIGKILL");
       }
-    );
+    };
+    const settle = (exitCode: number, suffix = "") => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      clearInterval(cancelPoll);
+      const output = [stdout, stderr, suffix].filter(Boolean).join("\n");
+      resolve({ command, exitCode, outputTail: output.length > 4_000 ? output.slice(-4_000) : output });
+    };
+    const timer = setTimeout(() => {
+      terminate("timeout");
+    }, timeoutMs);
+    const cancelPoll = setInterval(() => {
+      if (isCancelled()) {
+        terminate("cancelled");
+      }
+    }, 250);
+    const terminate = (reason: NonNullable<typeof terminal>) => {
+      if (terminal !== null) return;
+      terminal = reason;
+      clearTimeout(timer);
+      clearInterval(cancelPoll);
+      killHard();
+    };
+
+    child.stdout.on("data", (chunk: Buffer) => { stdout = append(stdout, chunk); });
+    child.stderr.on("data", (chunk: Buffer) => { stderr = append(stderr, chunk); });
+    child.on("error", (err) => settle(1, `failed to start verification: ${err.message}`));
+    child.on("close", (code) => {
+      if (terminal === "cancelled") return settle(1, "verification cancelled");
+      if (terminal === "timeout") return settle(1, "verification timed out");
+      settle(code ?? 1);
+    });
   });
 }

@@ -40,7 +40,7 @@ function rejectUntrustedHttpRequest(
 }
 
 function buildServer(): McpServer {
-  const server = new McpServer({ name: "proxenos", version: "0.1.0" });
+  const server = new McpServer({ name: "proxenos", version: "0.1.1" });
 
   server.registerTool(
     "delegate_task",
@@ -126,7 +126,7 @@ function buildServer(): McpServer {
     "cancel_delegation",
     {
       title: "Cancel a running delegation",
-      description: "Request cancellation of a running delegation. Kills the codex process.",
+      description: "Request cancellation of a running delegation. Stops the worker or verification command.",
       inputSchema: { delegationId: z.string() },
     },
     async ({ delegationId }) => json({ cancelled: cancelDelegation(delegationId) })
@@ -220,7 +220,18 @@ export async function serveHttp(port: number): Promise<void> {
     await transport.handleRequest(req, res, body);
   });
 
-  httpServer.listen(port, "127.0.0.1", () => {
-    console.error(`proxenos MCP server listening on http://127.0.0.1:${port}/mcp`);
+  await new Promise<void>((resolve, reject) => {
+    const onError = (err: Error) => {
+      httpServer.off("listening", onListening);
+      reject(err);
+    };
+    const onListening = () => {
+      httpServer.off("error", onError);
+      console.error(`proxenos MCP server listening on http://127.0.0.1:${port}/mcp`);
+      resolve();
+    };
+    httpServer.once("error", onError);
+    httpServer.once("listening", onListening);
+    httpServer.listen(port, "127.0.0.1");
   });
 }
