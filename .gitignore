@@ -1,5 +1,29 @@
+# dependencies
 node_modules/
+
+# build output
 dist/
-.proxenos/
+*.tsbuildinfo
+
+# env / secrets
+.env
+.env.*
+!.env.example
+
+# npm pack artifacts
+*.tgz
+
+# logs
 *.log
-.vscode/
+npm-debug.log*
+
+# editor / os
+.DS_Store
+.idea/
+.vscode/*
+!.vscode/extensions.json
+
+
+.memory
+.proxenos/
+docs/
