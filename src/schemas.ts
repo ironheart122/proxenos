@@ -136,7 +136,7 @@ export interface DelegationRecord {
 // Auth is whatever `codex login` cached (ChatGPT subscription or API key).
 // ---------------------------------------------------------------------------
 
-export const WorkerProfile = z.object({
+export const WorkerProfileSchema = z.object({
   model: z
     .string()
     .optional()
@@ -147,11 +147,12 @@ export const WorkerProfile = z.object({
   codexBin: z.string().default("codex"),
   extraArgs: z.array(z.string()).default([]),
 });
-export type WorkerProfile = z.infer<typeof WorkerProfile>;
+export type WorkerProfile = z.infer<typeof WorkerProfileSchema>;
 
 export const ProxenosConfig = z.object({
-  workers: z.record(WorkerProfile).refine((w) => "default" in w, {
+  workers: z.record(z.string(), WorkerProfileSchema).refine((w) => "default" in w, {
     message: "config must define a 'default' worker profile",
   }),
 });
+
 export type ProxenosConfig = z.infer<typeof ProxenosConfig>;

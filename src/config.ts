@@ -1,10 +1,10 @@
 import { readFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import { homedir } from "node:os";
-import { ProxenosConfig, WorkerProfile } from "./schemas.js";
+import { ProxenosConfig, WorkerProfileSchema, WorkerProfile } from "./schemas.js";
 
 const DEFAULT_CONFIG: ProxenosConfig = {
-  workers: { default: WorkerProfile.parse({}) },
+  workers: { default: WorkerProfileSchema.parse({}) },
 };
 
 const CANDIDATES = [

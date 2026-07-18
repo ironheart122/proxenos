@@ -4,7 +4,7 @@ import { serve, serveHttp } from "./server.js";
 import { DispatchSpec } from "./schemas.js";
 import { startDelegation, getDelegation } from "./delegation/manager.js";
 
-const USAGE = `proxenos — delegate coding tasks to foreign-model workers via MCP
+const USAGE = `proxenos - delegate coding tasks to foreign-model workers via MCP
 
 Usage:
   proxenos serve                 Start the MCP server (stdio). Register with:

@@ -10,7 +10,7 @@
   },
   "acceptanceCriteria": [
     "formatCurrency is exported from src/utils/format.ts with the exact signature above",
-    "Tests cover INR, USD, and a zero amount",
+    "Tests cover USD, ZAR, and a zero amount",
     "pnpm vitest run src/utils/format.test.ts exits 0",
     "No files outside src/utils/ are modified"
   ],
