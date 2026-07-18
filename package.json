@@ -21,23 +21,24 @@
     "examples"
   ],
   "engines": {
-    "node": ">=20"
+    "node": ">=24"
   },
   "scripts": {
     "build": "tsc",
+    "typecheck": "tsc --noEmit",
     "dev": "tsc --watch",
     "test": "npm run build && node --test test/*.test.mjs",
-    "typecheck": "tsc --noEmit",
-    "prepublishOnly": "npm run build"
+    "clean": "rm -rf dist",
+    "prepublishOnly": "pnpm run clean && pnpm run build"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.29.0",
-    "picomatch": "^4.0.2",
-    "zod": "^3.25.0"
+    "picomatch": "^4.0.5",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
-    "@types/node": "^22.15.0",
-    "@types/picomatch": "^3.0.1",
-    "typescript": "^5.8.0"
+    "@types/node": "^26.1.1",
+    "@types/picomatch": "^4.0.3",
+    "typescript": "^7.0.2"
   }
 }
