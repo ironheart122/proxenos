@@ -37,7 +37,7 @@ export function runCodexWorker(
   spec: DispatchSpec,
   profile: WorkerProfile,
   worktreePath: string,
-  cb: WorkerCallbacks = {}
+  cb: WorkerCallbacks = {},
 ): Promise<WorkerOutcome> {
   const startedAt = Date.now();
   const scratch = mkdtempSync(join(tmpdir(), "proxenos-"));
@@ -49,10 +49,14 @@ export function runCodexWorker(
     "exec",
     "--json",
     "--ephemeral",
-    "-C", worktreePath,
-    "-s", profile.sandbox,
-    "--output-schema", schemaPath,
-    "-o", lastMessagePath,
+    "-C",
+    worktreePath,
+    "-s",
+    profile.sandbox,
+    "--output-schema",
+    schemaPath,
+    "-o",
+    lastMessagePath,
     ...(profile.model ? ["-m", profile.model] : []),
     ...profile.extraArgs,
     buildPrompt(spec),
@@ -109,7 +113,9 @@ export function runCodexWorker(
       }
     }, 500);
 
-    child.on("error", (err) => settle("failed", null, `failed to spawn '${profile.codexBin}': ${err.message}`));
+    child.on("error", (err) =>
+      settle("failed", null, `failed to spawn '${profile.codexBin}': ${err.message}`),
+    );
 
     child.stderr.on("data", (chunk: Buffer) => {
       stderrTail = (stderrTail + chunk.toString()).slice(-4000);
@@ -246,7 +252,9 @@ function extractTokens(event: Record<string, unknown>): { input: number; output:
 
 function describeEvent(event: Record<string, unknown>): string {
   const type = String(event.type ?? "event");
-  const item = event.item as { type?: string; command?: string; path?: string; text?: string } | undefined;
+  const item = event.item as
+    | { type?: string; command?: string; path?: string; text?: string }
+    | undefined;
   const detail = item?.command ?? item?.path ?? item?.type ?? "";
   const s = detail ? `${type}: ${detail}` : type;
   return s.length > 100 ? s.slice(0, 97) + "…" : s;

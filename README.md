@@ -1,6 +1,6 @@
 # proxenos
 
-> *próxenos (πρόξενος): a citizen appointed to represent a foreign state's interests in his own city.*
+> _próxenos (πρόξενος): a citizen appointed to represent a foreign state's interests in his own city._
 
 An MCP server that lets Claude Code delegate coding tasks to **Codex CLI workers**, each running inside an **isolated git worktree**. Codex supplies the agent loop and sandbox; proxenos supplies the dispatch contract, isolation, verification, and observability.
 
@@ -30,20 +30,20 @@ Worker profiles are `codex exec` presets, in `proxenos.config.json` (project roo
 {
   "workers": {
     "default": { "sandbox": "workspace-write" },
-    "spark":   { "model": "gpt-5.3-codex-spark", "sandbox": "workspace-write" }
+    "spark": { "model": "gpt-5.3-codex-spark", "sandbox": "workspace-write" }
   }
 }
 ```
 
 ## The MCP surface
 
-| Tool | Purpose |
-| --- | --- |
-| `delegate_task` | Validate a dispatch spec, spin up a worktree + worker loop, return a `delegationId` immediately |
-| `check_delegation` | Poll status: iteration count, last tool action, elapsed time |
-| `get_delegation_result` | Full result contract once terminal |
-| `cancel_delegation` | Stop a running worker or verification command |
-| `list_workers` | Show configured worker profiles |
+| Tool                    | Purpose                                                                                         |
+| ----------------------- | ----------------------------------------------------------------------------------------------- |
+| `delegate_task`         | Validate a dispatch spec, spin up a worktree + worker loop, return a `delegationId` immediately |
+| `check_delegation`      | Poll status: iteration count, last tool action, elapsed time                                    |
+| `get_delegation_result` | Full result contract once terminal                                                              |
+| `cancel_delegation`     | Stop a running worker or verification command                                                   |
+| `list_workers`          | Show configured worker profiles                                                                 |
 
 ## The dispatch spec
 
@@ -55,12 +55,12 @@ The worker has **no conversation context** — the spec is a self-contained tick
   "context": { "workingDir": "/repo", "seedFiles": ["src/…"], "conventions": "…" },
   "acceptanceCriteria": ["checkable", "conditions"],
   "constraints": {
-    "writeMode": "patch",            // or "direct" (leaves a delegation/<id> branch to merge)
-    "allowedPaths": ["src/pricing/**"],  // enforced post-hoc from the diff
-    "timeoutMs": 600000
+    "writeMode": "patch", // or "direct" (leaves a delegation/<id> branch to merge)
+    "allowedPaths": ["src/pricing/**"], // enforced post-hoc from the diff
+    "timeoutMs": 600000,
   },
   "verification": { "command": "pnpm test --filter pricing" },
-  "worker": "default"     // codex exec preset from config
+  "worker": "default", // codex exec preset from config
 }
 ```
 
@@ -68,17 +68,22 @@ The worker has **no conversation context** — the spec is a self-contained tick
 
 ```jsonc
 {
-  "status": "completed",             // failed | timeout | cancelled
+  "status": "completed", // failed | timeout | cancelled
   "summary": "…worker's account…",
   "filesTouched": [{ "path": "src/…", "action": "modified" }],
-  "patch": "diff --git …",           // patch mode: review then `git apply`
-  "branch": null,                     // direct mode: "delegation/<id>" to merge
+  "patch": "diff --git …", // patch mode: review then `git apply`
+  "branch": null, // direct mode: "delegation/<id>" to merge
   "verification": { "command": "…", "exitCode": 0, "outputTail": "…" },
   "obstacles": ["couldn't find X, assumed Y"],
   "criteriaMet": true,
-  "usage": { "inputTokens": 41200, "outputTokens": 6300,
-             "quota": "chatgpt-subscription", "events": 38,
-             "wallTimeMs": 92000, "model": "codex-default" }
+  "usage": {
+    "inputTokens": 41200,
+    "outputTokens": 6300,
+    "quota": "chatgpt-subscription",
+    "events": 38,
+    "wallTimeMs": 92000,
+    "model": "codex-default",
+  },
 }
 ```
 
@@ -130,7 +135,7 @@ eval dataset later: replay old specs against new worker models and diff outcomes
 - `allowedPaths` globs are enforced post-hoc from the diff: out-of-bounds writes fail the delegation, but they do not prevent a worker from attempting those writes.
 - Verification runs orchestrator-side — the worker claiming tests pass is not trusted; the exit code is.
 - Wall-clock timeout kills the codex process group; patch mode keeps a review gate before anything touches your tree.
-- **Known trust boundary**: a delegation task is executable-agent input. Use trusted MCP clients and review task/context fields before dispatching. The verification command runs *unsandboxed*, against worker-modified code. The worker can't choose the command, but it controls what the command executes (`package.json` scripts, test files). A malicious worker could plant code that verification runs with your full privileges. Keep verification commands minimal, and treat their execution as executing worker output.
+- **Known trust boundary**: a delegation task is executable-agent input. Use trusted MCP clients and review task/context fields before dispatching. The verification command runs _unsandboxed_, against worker-modified code. The worker can't choose the command, but it controls what the command executes (`package.json` scripts, test files). A malicious worker could plant code that verification runs with your full privileges. Keep verification commands minimal, and treat their execution as executing worker output.
 
 ## Quota note
 
@@ -141,7 +146,7 @@ real cost even at $0. The `usage.quota` field (`chatgpt-subscription` | `api` |
 reason about this.
 
 Also note: each worktree is a fresh checkout — no `node_modules`. A worker that
-needs dependencies pays the install in wall time *and* tokens; keep verification
+needs dependencies pays the install in wall time _and_ tokens; keep verification
 commands dependency-light where you can.
 
 ## License

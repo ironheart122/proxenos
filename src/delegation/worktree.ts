@@ -27,12 +27,12 @@ export interface Worktree {
 export async function createWorktree(repoDir: string, id: string): Promise<Worktree> {
   if (!existsSync(repoDir)) {
     throw new Error(
-      `context.workingDir '${repoDir}' does not exist — set it to the absolute path of the repo the worker should operate on`
+      `context.workingDir '${repoDir}' does not exist — set it to the absolute path of the repo the worker should operate on`,
     );
   }
   await git(repoDir, ["rev-parse", "--is-inside-work-tree"]).catch(() => {
     throw new Error(
-      `context.workingDir '${repoDir}' is not inside a git repository — proxenos needs a git repo to create delegation worktrees`
+      `context.workingDir '${repoDir}' is not inside a git repository — proxenos needs a git repo to create delegation worktrees`,
     );
   });
   const branch = `delegation/${id}`;
@@ -72,8 +72,11 @@ export async function filesTouched(wt: Worktree): Promise<FileTouched[]> {
     .map((line) => {
       const [status, ...rest] = line.split("\t");
       const path = rest[rest.length - 1];
-      const action =
-        status.startsWith("A") ? "created" : status.startsWith("D") ? "deleted" : "modified";
+      const action = status.startsWith("A")
+        ? "created"
+        : status.startsWith("D")
+          ? "deleted"
+          : "modified";
       return { path, action } as FileTouched;
     });
 }
@@ -86,7 +89,7 @@ export async function filesTouched(wt: Worktree): Promise<FileTouched[]> {
 export async function cleanupWorktree(
   repoDir: string,
   wt: Worktree,
-  opts: { keepBranch: boolean }
+  opts: { keepBranch: boolean },
 ): Promise<void> {
   if (opts.keepBranch && await hasStagedChanges(wt.path)) {
     // Do not remove the worktree unless the branch contains the worker's changes.

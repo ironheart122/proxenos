@@ -9,11 +9,7 @@ const DEFAULT_CONFIG: ProxenosConfig = {
 
 const CANDIDATES = [
   join(process.cwd(), "proxenos.config.json"),
-  join(
-    process.env.XDG_CONFIG_HOME ?? join(homedir(), ".config"),
-    "proxenos",
-    "config.json"
-  ),
+  join(process.env.XDG_CONFIG_HOME ?? join(homedir(), ".config"), "proxenos", "config.json"),
 ];
 
 export function loadConfig(): ProxenosConfig {
@@ -23,7 +19,7 @@ export function loadConfig(): ProxenosConfig {
         return ProxenosConfig.parse(JSON.parse(readFileSync(path, "utf8")));
       } catch (err) {
         throw new Error(
-          `Invalid proxenos config at ${path}: ${err instanceof Error ? err.message : String(err)}`
+          `Invalid proxenos config at ${path}: ${err instanceof Error ? err.message : String(err)}`,
         );
       }
     }
@@ -41,8 +37,5 @@ export function resolveWorker(config: ProxenosConfig, name: string): WorkerProfi
 }
 
 export function dataDir(): string {
-  return join(
-    process.env.XDG_DATA_HOME ?? join(homedir(), ".local", "share"),
-    "proxenos"
-  );
+  return join(process.env.XDG_DATA_HOME ?? join(homedir(), ".local", "share"), "proxenos");
 }

@@ -3,16 +3,15 @@
   "version": "0.1.1",
   "description": "MCP server that lets Claude Code delegate tasks to Codex CLI workers (ChatGPT subscription or API-key auth) running in isolated git worktrees",
   "keywords": [
+    "agent",
+    "claude-code",
+    "delegation",
     "mcp",
     "model-context-protocol",
-    "claude-code",
-    "subagent",
     "orchestration",
-    "agent",
-    "delegation"
+    "subagent"
   ],
   "license": "MIT",
-  "type": "module",
   "bin": {
     "proxenos": "dist/index.js"
   },
@@ -20,16 +19,16 @@
     "dist",
     "examples"
   ],
-  "engines": {
-    "node": ">=24"
-  },
+  "type": "module",
   "scripts": {
     "build": "tsc",
     "typecheck": "tsc --noEmit",
     "dev": "tsc --watch",
     "test": "npm run build && node --test test/*.test.mjs",
     "clean": "rm -rf dist",
-    "prepublishOnly": "pnpm run clean && pnpm run build"
+    "prepublishOnly": "pnpm run clean && pnpm run build",
+    "fmt": "oxfmt",
+    "fmt:check": "oxfmt --check"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.29.0",
@@ -39,6 +38,10 @@
   "devDependencies": {
     "@types/node": "^26.1.1",
     "@types/picomatch": "^4.0.3",
+    "oxfmt": "^0.59.0",
     "typescript": "^7.0.2"
+  },
+  "engines": {
+    "node": ">=24"
   }
 }
