@@ -28,7 +28,9 @@
     "clean": "rm -rf dist",
     "prepublishOnly": "pnpm run clean && pnpm run build",
     "fmt": "oxfmt",
-    "fmt:check": "oxfmt --check"
+    "fmt:check": "oxfmt --check",
+    "lint": "oxlint",
+    "lint:fix": "oxlint --fix"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.29.0",
@@ -39,6 +41,7 @@
     "@types/node": "^26.1.1",
     "@types/picomatch": "^4.0.3",
     "oxfmt": "^0.59.0",
+    "oxlint": "^1.74.0",
     "typescript": "^7.0.2"
   },
   "engines": {
