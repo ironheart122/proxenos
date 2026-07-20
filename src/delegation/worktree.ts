@@ -88,16 +88,22 @@ export async function cleanupWorktree(
   wt: Worktree,
   opts: { keepBranch: boolean }
 ): Promise<void> {
-  if (opts.keepBranch) {
-    // Commit staged work onto the delegation branch so it survives removal.
-    try {
-      await git(wt.path, ["commit", "-m", `proxenos: delegation ${wt.branch}`, "--no-verify"]);
-    } catch {
-      // nothing to commit — that's fine
-    }
+  if (opts.keepBranch && await hasStagedChanges(wt.path)) {
+    // Do not remove the worktree unless the branch contains the worker's changes.
+    await git(wt.path, ["commit", "-m", `proxenos: delegation ${wt.branch}`, "--no-verify"]);
   }
   await git(repoDir, ["worktree", "remove", "--force", wt.path]);
   if (!opts.keepBranch) {
     await git(repoDir, ["branch", "-D", wt.branch]).catch(() => {});
+  }
+}
+
+async function hasStagedChanges(repoDir: string): Promise<boolean> {
+  try {
+    await git(repoDir, ["diff", "--cached", "--quiet", "HEAD"]);
+    return false;
+  } catch (err) {
+    if ((err as { code?: number }).code === 1) return true;
+    throw err;
   }
 }

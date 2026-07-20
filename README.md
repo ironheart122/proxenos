@@ -9,15 +9,18 @@ Claude plans and verifies. Codex executes — on your **ChatGPT subscription quo
 ## Why
 
 - **Subscription arbitrage** — route bulk mechanical work (test generation, codemods, boilerplate) to Codex on quota you already pay for, while Claude keeps the high-context reasoning.
-- **Isolation by construction** — every delegation runs in its own `git worktree` on a fresh branch. A runaway worker physically cannot touch your checked-out branch.
+- **Isolation by construction** — every delegation runs in its own `git worktree` on a fresh branch. Keep workers on `workspace-write` to scope normal runs to that worktree.
 - **A real contract, not stdout scraping** — structured dispatch specs in, structured results out: summary, unified diff, files touched, verification output, declared obstacles, and per-delegation token/cost usage.
 - **Async & parallel** — `delegate_task` returns a ticket immediately. Dispatch three delegations, poll them together.
 
 ## Install
 
 ```bash
-claude mcp add proxenos -- npx -y proxenos serve
+claude mcp add proxenos -- npx -y proxenos@0.1.1 serve
 ```
+
+Pin the version you reviewed instead of relying on a fresh package download at
+every Claude Code launch. Upgrade deliberately after reviewing the release.
 
 Requires the [Codex CLI](https://developers.openai.com/codex) installed and authenticated (`codex login` — ChatGPT sign-in uses your subscription quota; an API key uses platform billing).
 
@@ -39,7 +42,7 @@ Worker profiles are `codex exec` presets, in `proxenos.config.json` (project roo
 | `delegate_task` | Validate a dispatch spec, spin up a worktree + worker loop, return a `delegationId` immediately |
 | `check_delegation` | Poll status: iteration count, last tool action, elapsed time |
 | `get_delegation_result` | Full result contract once terminal |
-| `cancel_delegation` | Stop a runaway worker at the next iteration boundary |
+| `cancel_delegation` | Stop a running worker or verification command |
 | `list_workers` | Show configured worker profiles |
 
 ## The dispatch spec
@@ -65,7 +68,7 @@ The worker has **no conversation context** — the spec is a self-contained tick
 
 ```jsonc
 {
-  "status": "completed",             // failed | budget_exceeded | timeout | cancelled
+  "status": "completed",             // failed | timeout | cancelled
   "summary": "…worker's account…",
   "filesTouched": [{ "path": "src/…", "action": "modified" }],
   "patch": "diff --git …",           // patch mode: review then `git apply`
@@ -99,6 +102,20 @@ proxenos run --spec examples/spec.example.json
 
 Runs one delegation end-to-end and prints the result contract — useful for iterating on spec formats and worker prompts.
 
+## Persistent HTTP mode
+
+For a long-running local instance shared by multiple Claude Code sessions:
+
+```bash
+proxenos serve --http --port 8137
+claude mcp add --transport http proxenos http://127.0.0.1:8137/mcp
+```
+
+This mode binds only to `127.0.0.1`, validates loopback hosts and origins, and
+has no authentication. Do not expose it through a reverse proxy, tunnel, port
+forward, container port mapping, or any non-loopback interface. Anyone who can
+reach the endpoint can ask it to start Codex workers against local Git repos.
+
 ## Observability
 
 Every delegation (full spec + result + usage) is appended to
@@ -107,12 +124,13 @@ eval dataset later: replay old specs against new worker models and diff outcomes
 
 ## Safety model
 
-- Each delegation runs in its own worktree on a fresh branch — a runaway worker cannot touch your checked-out branch.
+- Each delegation runs in its own worktree on a fresh branch. In `patch` mode, review the returned patch before applying it; in `direct` mode, review the committed delegation branch before merging it.
 - Codex runs under its own sandbox (`workspace-write` by default), scoped to the worktree via `-C`.
-- `allowedPaths` globs are enforced post-hoc from the diff: out-of-bounds writes fail the delegation.
+- Do not configure workers with `danger-full-access` unless you accept that the worker can escape the worktree sandbox.
+- `allowedPaths` globs are enforced post-hoc from the diff: out-of-bounds writes fail the delegation, but they do not prevent a worker from attempting those writes.
 - Verification runs orchestrator-side — the worker claiming tests pass is not trusted; the exit code is.
 - Wall-clock timeout kills the codex process group; patch mode keeps a review gate before anything touches your tree.
-- **Known trust boundary**: the verification command runs *unsandboxed*, against worker-modified code. The worker can't choose the command, but it controls what the command executes (`package.json` scripts, test files). A malicious worker could plant code that verification runs with your full privileges. Keep verification commands minimal, and treat their execution as executing worker output.
+- **Known trust boundary**: a delegation task is executable-agent input. Use trusted MCP clients and review task/context fields before dispatching. The verification command runs *unsandboxed*, against worker-modified code. The worker can't choose the command, but it controls what the command executes (`package.json` scripts, test files). A malicious worker could plant code that verification runs with your full privileges. Keep verification commands minimal, and treat their execution as executing worker output.
 
 ## Quota note
 

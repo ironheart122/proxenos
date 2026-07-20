@@ -1,6 +1,6 @@
 {
   "name": "proxenos",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "MCP server that lets Claude Code delegate tasks to Codex CLI workers (ChatGPT subscription or API-key auth) running in isolated git worktrees",
   "keywords": [
     "mcp",

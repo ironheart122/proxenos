@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
@@ -60,6 +60,27 @@ test("reports both sides of a rename for path enforcement", async () => {
     ]);
   } finally {
     await cleanupWorktree(repo, wt, { keepBranch: false });
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("preserves staged output when a direct-mode commit fails", async () => {
+  const { root, repo } = createRepo();
+  const wt = await createWorktree(repo, "failed-commit");
+
+  try {
+    writeFileSync(join(wt.path, "output.txt"), "worker output\n");
+    await filesTouched(wt);
+    git(repo, "config", "user.name", "");
+
+    await assert.rejects(cleanupWorktree(repo, wt, { keepBranch: true }));
+    assert.equal(existsSync(wt.path), true);
+    assert.match(git(wt.path, "status", "--short"), /output\.txt/);
+  } finally {
+    git(repo, "config", "user.name", "Proxenos Test");
+    if (existsSync(wt.path)) {
+      await cleanupWorktree(repo, wt, { keepBranch: false });
+    }
     rmSync(root, { recursive: true, force: true });
   }
 });
