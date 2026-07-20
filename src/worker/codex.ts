@@ -190,12 +190,14 @@ export function resolveModelLabel(profile: WorkerProfile): string {
 function modelFromExtraArgs(args: string[]): string | null {
   for (let i = 0; i < args.length; i++) {
     const a = args[i];
+    if (!a) continue;
     if (a === "-m" || a === "--model") return args[i + 1] ?? null;
     if (a.startsWith("--model=")) return a.slice("--model=".length);
     // codex config override, e.g. `-c model="gpt-5.5"`
-    if ((a === "-c" || a === "--config") && args[i + 1]) {
-      const m = /^model\s*=\s*"?([^"\s]+)"?$/.exec(args[i + 1]);
-      if (m) return m[1];
+    const configArg = args[i + 1];
+    if ((a === "-c" || a === "--config") && configArg) {
+      const model = /^model\s*=\s*"?([^"\s]+)"?$/.exec(configArg)?.[1];
+      if (model) return model;
     }
   }
   return null;
@@ -231,8 +233,8 @@ function codexConfigModel(): string | null {
     for (const raw of toml.split("\n")) {
       const line = raw.trim();
       if (line.startsWith("[")) break;
-      const m = /^model\s*=\s*"([^"]+)"/.exec(line);
-      if (m) return m[1];
+      const model = /^model\s*=\s*"([^"]+)"/.exec(line)?.[1];
+      if (model) return model;
     }
   } catch {
     // no readable config.toml — fall through to the unknown label

@@ -72,6 +72,7 @@ export async function filesTouched(wt: Worktree): Promise<FileTouched[]> {
     .map((line) => {
       const [status, ...rest] = line.split("\t");
       const path = rest[rest.length - 1];
+      if (!status || !path) throw new Error(`Unexpected git name-status line: ${line}`);
       const action = status.startsWith("A")
         ? "created"
         : status.startsWith("D")
@@ -91,7 +92,7 @@ export async function cleanupWorktree(
   wt: Worktree,
   opts: { keepBranch: boolean },
 ): Promise<void> {
-  if (opts.keepBranch && await hasStagedChanges(wt.path)) {
+  if (opts.keepBranch && (await hasStagedChanges(wt.path))) {
     // Do not remove the worktree unless the branch contains the worker's changes.
     await git(wt.path, ["commit", "-m", `proxenos: delegation ${wt.branch}`, "--no-verify"]);
   }

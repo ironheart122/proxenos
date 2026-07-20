@@ -22,27 +22,30 @@ async function availablePort() {
   });
   const address = server.address();
   assert(address && typeof address !== "string");
-  await new Promise((resolve, reject) => server.close((err) => err ? reject(err) : resolve()));
+  await new Promise((resolve, reject) => server.close((err) => (err ? reject(err) : resolve())));
   return address.port;
 }
 
 function post(port, headers = {}) {
   return new Promise((resolve, reject) => {
-    const req = request({
-      hostname: "127.0.0.1",
-      port,
-      path: "/mcp",
-      method: "POST",
-      headers: {
-        accept: "application/json, text/event-stream",
-        "content-type": "application/json",
-        "content-length": Buffer.byteLength(initialize),
-        ...headers,
+    const req = request(
+      {
+        hostname: "127.0.0.1",
+        port,
+        path: "/mcp",
+        method: "POST",
+        headers: {
+          accept: "application/json, text/event-stream",
+          "content-type": "application/json",
+          "content-length": Buffer.byteLength(initialize),
+          ...headers,
+        },
       },
-    }, (res) => {
-      res.resume();
-      res.once("end", () => resolve(res.statusCode));
-    });
+      (res) => {
+        res.resume();
+        res.once("end", () => resolve(res.statusCode));
+      },
+    );
     req.once("error", reject);
     req.end(initialize);
   });
@@ -50,9 +53,13 @@ function post(port, headers = {}) {
 
 test("persistent HTTP mode rejects non-loopback hosts and origins", async () => {
   const port = await availablePort();
-  const child = spawn(process.execPath, ["dist/index.js", "serve", "--http", "--port", String(port)], {
-    stdio: ["ignore", "ignore", "pipe"],
-  });
+  const child = spawn(
+    process.execPath,
+    ["dist/index.js", "serve", "--http", "--port", String(port)],
+    {
+      stdio: ["ignore", "ignore", "pipe"],
+    },
+  );
 
   try {
     await new Promise((resolve, reject) => {

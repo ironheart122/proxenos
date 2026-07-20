@@ -54,7 +54,7 @@ export const DispatchSpec = z.object({
         ),
       timeoutMs: z.number().int().positive().default(600_000),
     })
-    .default({}),
+    .prefault({}),
   verification: z
     .object({
       command: z

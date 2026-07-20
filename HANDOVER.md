@@ -32,18 +32,18 @@ diff or branch, files touched, verification output, token usage + quota pool).
 
 ## Code map (src/, all of it)
 
-| File | Role |
-|---|---|
-| `index.ts` | CLI: `serve` (stdio), `serve --http [--port]`, `run --spec` (MCP-less test path) |
-| `server.ts` | 5 MCP tools: `delegate_task`, `check_delegation`, `get_delegation_result`, `cancel_delegation`, `list_workers`; stdio + stateless streamable-HTTP modes |
-| `schemas.ts` | Zod `DispatchSpec` (the `.describe()` strings are caller-facing prompt engineering), result/record types, worker-profile config schema |
-| `config.ts` | Config discovery (cwd → XDG), `default` profile required, XDG data dir |
-| `delegation/manager.ts` | Orchestration: start → run worker → snapshot diff → enforce `allowedPaths` → run verification → status resolution → cleanup → persist |
-| `delegation/worktree.ts` | Worktree create/diff/cleanup; patch mode deletes branch, direct mode commits + keeps it |
-| `delegation/store.ts` | JSONL persistence |
-| `worker/codex.ts` | `codex exec --json --ephemeral` runner: process-group kill for timeout/cancel, JSONL event streaming for live progress, token/quota/model attribution |
-| `worker/prompt.ts` | Spec → self-contained prompt + `--output-schema` contract (`summary`/`obstacles`/`criteriaMet`) |
-| `util/formatDuration.ts` | Cosmetic |
+| File                     | Role                                                                                                                                                    |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `index.ts`               | CLI: `serve` (stdio), `serve --http [--port]`, `run --spec` (MCP-less test path)                                                                        |
+| `server.ts`              | 5 MCP tools: `delegate_task`, `check_delegation`, `get_delegation_result`, `cancel_delegation`, `list_workers`; stdio + stateless streamable-HTTP modes |
+| `schemas.ts`             | Zod `DispatchSpec` (the `.describe()` strings are caller-facing prompt engineering), result/record types, worker-profile config schema                  |
+| `config.ts`              | Config discovery (cwd → XDG), `default` profile required, XDG data dir                                                                                  |
+| `delegation/manager.ts`  | Orchestration: start → run worker → snapshot diff → enforce `allowedPaths` → run verification → status resolution → cleanup → persist                   |
+| `delegation/worktree.ts` | Worktree create/diff/cleanup; patch mode deletes branch, direct mode commits + keeps it                                                                 |
+| `delegation/store.ts`    | JSONL persistence                                                                                                                                       |
+| `worker/codex.ts`        | `codex exec --json --ephemeral` runner: process-group kill for timeout/cancel, JSONL event streaming for live progress, token/quota/model attribution   |
+| `worker/prompt.ts`       | Spec → self-contained prompt + `--output-schema` contract (`summary`/`obstacles`/`criteriaMet`)                                                         |
+| `util/formatDuration.ts` | Cosmetic                                                                                                                                                |
 
 ## Verdict
 
@@ -58,7 +58,7 @@ context from scratch, so iterate-until-green loops stay cheaper on raw
 
 ### What makes it trustworthy (design decisions to preserve)
 
-The recurring pattern is *never trust the worker's self-report*:
+The recurring pattern is _never trust the worker's self-report_:
 
 1. The diff is **computed by the orchestrator** from the worktree
    (`worktree.ts` `diffWorktree`), never taken from worker claims.
@@ -88,7 +88,7 @@ Full writeup in `docs/field-tests/` (local-only — `docs/` is gitignored).
 The 2026-07-07 incident: all delegations died in <2s because the systemd
 daemon's minimal PATH resolved a **stale nvm-global codex** (0.112.0) ahead of
 bun's current one; the old CLI can't run current models. It was patched by
-upgrading the nvm copy *in place*, which will silently go stale again after
+upgrading the nvm copy _in place_, which will silently go stale again after
 the next bun-side codex upgrade. Durable fix, still not applied:
 
 - Create `~/.config/proxenos/config.json` with the `default` worker's
@@ -123,8 +123,8 @@ multi-step bisection. Fix (as specced in the field-test doc): keep a
 
 ## Routing rule of thumb (vs `codex-first` skill)
 
-| Task shape | Use |
-|---|---|
-| Frozen spec, parallel fan-out, review-as-delegation, anything wanting isolation/enforcement | **proxenos** |
-| Iterate-until-green, follow-up-heavy, conversational fixes | raw `codex exec` + `resume` (codex-first skill) |
-| Design, spec-writing, review of worker output | Claude, never delegated |
+| Task shape                                                                                  | Use                                             |
+| ------------------------------------------------------------------------------------------- | ----------------------------------------------- |
+| Frozen spec, parallel fan-out, review-as-delegation, anything wanting isolation/enforcement | **proxenos**                                    |
+| Iterate-until-green, follow-up-heavy, conversational fixes                                  | raw `codex exec` + `resume` (codex-first skill) |
+| Design, spec-writing, review of worker output                                               | Claude, never delegated                         |

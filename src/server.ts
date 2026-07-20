@@ -23,7 +23,7 @@ function rejectUntrustedHttpRequest(
   req: IncomingMessage,
   res: ServerResponse,
   allowedHosts: ReadonlySet<string>,
-  allowedOrigins: ReadonlySet<string>
+  allowedOrigins: ReadonlySet<string>,
 ): boolean {
   const host = req.headers.host;
   const origin = req.headers.origin;
@@ -34,7 +34,7 @@ function rejectUntrustedHttpRequest(
         jsonrpc: "2.0",
         error: { code: -32000, message: "Forbidden host or origin" },
         id: null,
-      })
+      }),
     );
     return true;
   }
@@ -129,7 +129,8 @@ function buildServer(): McpServer {
     "cancel_delegation",
     {
       title: "Cancel a running delegation",
-      description: "Request cancellation of a running delegation. Stops the worker or verification command.",
+      description:
+        "Request cancellation of a running delegation. Stops the worker or verification command.",
       inputSchema: { delegationId: z.string() },
     },
     async ({ delegationId }) => json({ cancelled: cancelDelegation(delegationId) }),
