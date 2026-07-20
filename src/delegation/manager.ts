@@ -39,6 +39,7 @@ export async function startDelegation(spec: DispatchSpec): Promise<DelegationRec
     status: "running",
     worktreePath: wt.path,
     branch: wt.branch,
+    baseCommit: wt.baseCommit,
     startedAt: new Date().toISOString(),
     finishedAt: null,
     events: 0,
@@ -55,7 +56,7 @@ export async function startDelegation(spec: DispatchSpec): Promise<DelegationRec
     cancellations.delete(id);
     // runDelegation died before its own cleanup — don't leak the worktree,
     // and keep the failure in the JSONL log so the eval dataset sees it.
-    await cleanupWorktree(spec.context.workingDir, { path: wt.path, branch: wt.branch }, {
+    await cleanupWorktree(spec.context.workingDir, wt, {
       keepBranch: false,
     }).catch(() => {});
     persistRecord(record);
@@ -69,7 +70,11 @@ async function runDelegation(
   profile: ReturnType<typeof resolveWorker>
 ): Promise<void> {
   const { spec, id } = record;
-  const wt = { path: record.worktreePath, branch: record.branch };
+  const wt = {
+    path: record.worktreePath,
+    branch: record.branch,
+    baseCommit: record.baseCommit,
+  };
 
   const outcome = await runCodexWorker(spec, profile, wt.path, {
     onEvent: (events, lastAction) => {

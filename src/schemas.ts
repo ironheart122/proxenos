@@ -122,6 +122,7 @@ export interface DelegationRecord {
   status: DelegationStatus;
   worktreePath: string;
   branch: string;
+  baseCommit: string;
   startedAt: string;
   finishedAt: string | null;
   events: number;

@@ -1,4 +1,4 @@
-import { createServer } from "node:http";
+import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
@@ -15,6 +15,28 @@ import { resolveModelLabel } from "./worker/codex.js";
 
 function json(payload: unknown) {
   return { content: [{ type: "text" as const, text: JSON.stringify(payload, null, 2) }] };
+}
+
+function rejectUntrustedHttpRequest(
+  req: IncomingMessage,
+  res: ServerResponse,
+  allowedHosts: ReadonlySet<string>,
+  allowedOrigins: ReadonlySet<string>
+): boolean {
+  const host = req.headers.host;
+  const origin = req.headers.origin;
+
+  if (!host || !allowedHosts.has(host) || (origin !== undefined && !allowedOrigins.has(origin))) {
+    res.writeHead(403, { "content-type": "application/json" }).end(
+      JSON.stringify({
+        jsonrpc: "2.0",
+        error: { code: -32000, message: "Forbidden host or origin" },
+        id: null,
+      })
+    );
+    return true;
+  }
+  return false;
 }
 
 function buildServer(): McpServer {
@@ -143,6 +165,10 @@ export async function serve(): Promise<void> {
  * session sees the same delegations. Binds to loopback only — there is no auth.
  */
 export async function serveHttp(port: number): Promise<void> {
+  const allowedHosts = ["127.0.0.1", `127.0.0.1:${port}`, "localhost", `localhost:${port}`];
+  const allowedOrigins = [`http://127.0.0.1:${port}`, `http://localhost:${port}`];
+  const allowedHostSet = new Set(allowedHosts);
+  const allowedOriginSet = new Set(allowedOrigins);
   const httpServer = createServer(async (req, res) => {
     if (new URL(req.url ?? "/", "http://localhost").pathname !== "/mcp") {
       res.writeHead(404).end();
@@ -158,6 +184,10 @@ export async function serveHttp(port: number): Promise<void> {
       );
       return;
     }
+    // Validate before buffering or parsing an attacker-controlled request body.
+    // Keep this application-level guard even though the SDK transport repeats
+    // the check, so dependency resolution cannot silently remove the boundary.
+    if (rejectUntrustedHttpRequest(req, res, allowedHostSet, allowedOriginSet)) return;
 
     const chunks: Buffer[] = [];
     for await (const chunk of req) chunks.push(chunk as Buffer);
@@ -179,7 +209,8 @@ export async function serveHttp(port: number): Promise<void> {
     const transport = new StreamableHTTPServerTransport({
       sessionIdGenerator: undefined,
       enableDnsRebindingProtection: true,
-      allowedHosts: ["127.0.0.1", `127.0.0.1:${port}`, "localhost", `localhost:${port}`],
+      allowedHosts,
+      allowedOrigins,
     });
     res.on("close", () => {
       void transport.close();
