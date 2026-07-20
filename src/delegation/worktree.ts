@@ -16,6 +16,7 @@ async function git(repo: string, args: string[]): Promise<string> {
 export interface Worktree {
   path: string;
   branch: string;
+  baseCommit: string;
 }
 
 /**
@@ -35,23 +36,35 @@ export async function createWorktree(repoDir: string, id: string): Promise<Workt
     );
   });
   const branch = `delegation/${id}`;
+  // Keep an immutable comparison point. The worker may create commits, which
+  // moves the worktree's HEAD and must not hide those changes from the patch or
+  // allowedPaths enforcement.
+  const baseCommit = (await git(repoDir, ["rev-parse", "HEAD"])).trim();
   const base = join(repoDir, ".proxenos", "worktrees");
   mkdirSync(base, { recursive: true });
   const path = join(base, id);
-  await git(repoDir, ["worktree", "add", "-b", branch, path, "HEAD"]);
-  return { path, branch };
+  await git(repoDir, ["worktree", "add", "-b", branch, path, baseCommit]);
+  return { path, branch, baseCommit };
 }
 
-/** Stage everything (including untracked) and emit a unified diff against HEAD. */
+/** Stage everything and emit the full worker diff against its immutable base. */
 export async function diffWorktree(wt: Worktree): Promise<string> {
   await git(wt.path, ["add", "-A"]);
   // --binary so patches containing binary files survive `git apply`.
-  return git(wt.path, ["diff", "--cached", "--binary", "HEAD"]);
+  return git(wt.path, ["diff", "--cached", "--binary", wt.baseCommit]);
 }
 
 export async function filesTouched(wt: Worktree): Promise<FileTouched[]> {
   await git(wt.path, ["add", "-A"]);
-  const out = await git(wt.path, ["diff", "--cached", "--name-status", "HEAD"]);
+  // Disabling rename detection reports the source as deleted and destination
+  // as created, so allowedPaths evaluates both sides of a move.
+  const out = await git(wt.path, [
+    "diff",
+    "--cached",
+    "--no-renames",
+    "--name-status",
+    wt.baseCommit,
+  ]);
   return out
     .trim()
     .split("\n")
