@@ -16,7 +16,7 @@ Claude plans and verifies. Codex executes — on your **ChatGPT subscription quo
 ## Install
 
 ```bash
-claude mcp add proxenos -- npx -y proxenos@0.1.2 serve
+claude mcp add proxenos -- npx -y proxenos@0.1.3 serve
 ```
 
 Pin the version you reviewed instead of relying on a fresh package download at
