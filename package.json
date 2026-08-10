@@ -11,14 +11,14 @@
     "orchestration",
     "subagent"
   ],
+  "homepage": "https://github.com/ironheart122/proxenos#readme",
+  "bugs": {
+    "url": "https://github.com/ironheart122/proxenos/issues"
+  },
   "license": "MIT",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/ironheart122/proxenos.git"
-  },
-  "homepage": "https://github.com/ironheart122/proxenos#readme",
-  "bugs": {
-    "url": "https://github.com/ironheart122/proxenos/issues"
   },
   "bin": {
     "proxenos": "dist/index.js"
