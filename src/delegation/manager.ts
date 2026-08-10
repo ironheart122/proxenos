@@ -4,6 +4,7 @@ import picomatch from "picomatch";
 import { loadConfig, resolveWorker } from "../config.js";
 import { runCodexWorker } from "../worker/codex.js";
 import { createWorktree, diffWorktree, filesTouched, cleanupWorktree } from "./worktree.js";
+import { warmDependencies } from "./warmDeps.js";
 import { persistRecord } from "./store.js";
 import { nonInteractiveEnv } from "../util/nonInteractiveEnv.js";
 import type {
@@ -82,6 +83,12 @@ async function runDelegation(
     baseCommit: record.baseCommit,
   };
 
+  // Warm the worktree before the worker sees it: a cold worktree makes the
+  // worker (and later, verification) pay a full dependency install inside the
+  // sandbox, where the operator's package-manager store isn't writable (#12).
+  record.lastAction = "pre-installing dependencies";
+  const depWarning = await warmDependencies(wt.path);
+
   const outcome = await runCodexWorker(spec, profile, wt.path, {
     onEvent: (events, lastAction) => {
       record.events = events;
@@ -97,6 +104,7 @@ async function runDelegation(
   const patch = await diffWorktree(wt);
   const touched = await filesTouched(wt);
   const obstacles = [...(outcome.finish?.obstacles ?? [])];
+  if (depWarning) obstacles.push(depWarning);
 
   // Post-hoc allowedPaths enforcement: codex's own sandbox can't express our
   // globs, so violations are detected from the diff and fail the delegation.

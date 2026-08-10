@@ -69,9 +69,10 @@ export const DispatchSpec = z.object({
         .string()
         .describe(
           "Shell command run inside the worktree after the worker finishes, e.g. " +
-            "'pnpm test --filter pricing'. The worktree is a fresh checkout with no " +
-            "node_modules/ or other gitignored artifacts — a full test-suite command pays " +
-            "a dependency install first. Prefer dependency-light commands.",
+            "'pnpm test --filter pricing'. When the repo has a recognized lockfile " +
+            "(pnpm/npm/bun/yarn), dependencies are pre-installed into the worktree before " +
+            "the worker starts, so node_modules is warm. Other gitignored artifacts " +
+            "(e.g. a prebuilt dist/) are still absent — account for build steps.",
         ),
       timeoutMs: z
         .number()
