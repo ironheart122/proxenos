@@ -113,8 +113,9 @@ multi-step bisection. Fix (as specced in the field-test doc): keep a
   record and orphans `.proxenos/worktrees/<id>` + its branch; records persist
   to JSONL only at completion. No startup sweep exists. Low frequency; a
   `git worktree prune` + stale-branch sweep on boot would close it.
-- **No tests.** ~1,100 lines, stable surface; fine for now, but `manager.ts`
-  status-resolution and the path-enforcement logic are cheap to unit-test.
+- **Thin test coverage.** `test/` covers HTTP security, verification, and
+  worktree path enforcement (`node --test`); `manager.ts` status-resolution
+  is still untested and cheap to unit-test.
 - **Patch application is the caller's job** (`git apply` semantics, conflicts
   on dirty trees). Direct mode (`writeMode: "direct"`) sidesteps this by
   leaving the branch to merge.
