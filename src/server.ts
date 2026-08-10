@@ -14,14 +14,16 @@ import { loadConfig } from "./config.js";
 import { resolveModelLabel } from "./worker/codex.js";
 
 function json(payload: unknown) {
-  return { content: [{ type: "text" as const, text: JSON.stringify(payload, null, 2) }] };
+  return {
+    content: [{ type: "text" as const, text: JSON.stringify(payload, null, 2) }],
+  };
 }
 
 function rejectUntrustedHttpRequest(
   req: IncomingMessage,
   res: ServerResponse,
   allowedHosts: ReadonlySet<string>,
-  allowedOrigins: ReadonlySet<string>
+  allowedOrigins: ReadonlySet<string>,
 ): boolean {
   const host = req.headers.host;
   const origin = req.headers.origin;
@@ -32,7 +34,7 @@ function rejectUntrustedHttpRequest(
         jsonrpc: "2.0",
         error: { code: -32000, message: "Forbidden host or origin" },
         id: null,
-      })
+      }),
     );
     return true;
   }
@@ -63,7 +65,7 @@ function buildServer(): McpServer {
         worker: spec.worker,
         hint: `Poll with check_delegation({ delegationId: "${rec.id}" }). Typical tasks take 1-5 minutes.`,
       });
-    }
+    },
   );
 
   server.registerTool(
@@ -82,7 +84,7 @@ function buildServer(): McpServer {
             status: r.status,
             events: r.events,
             lastAction: r.lastAction,
-          }))
+          })),
         );
       }
       const rec = getDelegation(delegationId);
@@ -92,9 +94,10 @@ function buildServer(): McpServer {
         status: rec.status,
         events: rec.events,
         lastAction: rec.lastAction,
-        elapsedMs: (rec.finishedAt ? Date.parse(rec.finishedAt) : Date.now()) - Date.parse(rec.startedAt),
+        elapsedMs:
+          (rec.finishedAt ? Date.parse(rec.finishedAt) : Date.now()) - Date.parse(rec.startedAt),
       });
-    }
+    },
   );
 
   server.registerTool(
@@ -119,17 +122,18 @@ function buildServer(): McpServer {
         });
       }
       return json(rec.result ?? { status: rec.status, error: rec.error });
-    }
+    },
   );
 
   server.registerTool(
     "cancel_delegation",
     {
       title: "Cancel a running delegation",
-      description: "Request cancellation of a running delegation. Stops the worker or verification command.",
+      description:
+        "Request cancellation of a running delegation. Stops the worker or verification command.",
       inputSchema: { delegationId: z.string() },
     },
-    async ({ delegationId }) => json({ cancelled: cancelDelegation(delegationId) })
+    async ({ delegationId }) => json({ cancelled: cancelDelegation(delegationId) }),
   );
 
   server.registerTool(
@@ -143,10 +147,13 @@ function buildServer(): McpServer {
       const cfg = loadConfig();
       return json(
         Object.fromEntries(
-          Object.entries(cfg.workers).map(([name, w]) => [name, { model: resolveModelLabel(w), sandbox: w.sandbox }])
-        )
+          Object.entries(cfg.workers).map(([name, w]) => [
+            name,
+            { model: resolveModelLabel(w), sandbox: w.sandbox },
+          ]),
+        ),
       );
-    }
+    },
   );
 
   return server;
@@ -178,9 +185,12 @@ export async function serveHttp(port: number): Promise<void> {
       res.writeHead(405, { "content-type": "application/json" }).end(
         JSON.stringify({
           jsonrpc: "2.0",
-          error: { code: -32000, message: "Method not allowed — stateless server, POST only" },
+          error: {
+            code: -32000,
+            message: "Method not allowed — stateless server, POST only",
+          },
           id: null,
-        })
+        }),
       );
       return;
     }
@@ -200,7 +210,7 @@ export async function serveHttp(port: number): Promise<void> {
           jsonrpc: "2.0",
           error: { code: -32700, message: "Parse error" },
           id: null,
-        })
+        }),
       );
       return;
     }

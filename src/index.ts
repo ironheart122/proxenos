@@ -4,7 +4,7 @@ import { serve, serveHttp } from "./server.js";
 import { DispatchSpec } from "./schemas.js";
 import { startDelegation, getDelegation } from "./delegation/manager.js";
 
-const USAGE = `proxenos — delegate coding tasks to foreign-model workers via MCP
+const USAGE = `proxenos - delegate coding tasks to foreign-model workers via MCP
 
 Usage:
   proxenos serve                 Start the MCP server (stdio). Register with:
@@ -39,11 +39,12 @@ async function main(): Promise<void> {
 
     case "run": {
       const flagIdx = rest.indexOf("--spec");
-      if (flagIdx === -1 || !rest[flagIdx + 1]) {
+      const specPath = flagIdx === -1 ? undefined : rest[flagIdx + 1];
+      if (!specPath) {
         console.error("run requires --spec <file.json>");
         process.exit(1);
       }
-      const spec = DispatchSpec.parse(JSON.parse(readFileSync(rest[flagIdx + 1], "utf8")));
+      const spec = DispatchSpec.parse(JSON.parse(readFileSync(specPath, "utf8")));
       const rec = await startDelegation(spec);
       console.error(`delegation ${rec.id} started on ${rec.branch}`);
 

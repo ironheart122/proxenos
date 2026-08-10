@@ -39,9 +39,7 @@ test("captures changes committed by a worker against the original base", async (
 
     assert.notEqual(git(wt.path, "rev-parse", "HEAD"), wt.baseCommit);
     assert.match(await diffWorktree(wt), /outside\.txt/);
-    assert.deepEqual(await filesTouched(wt), [
-      { path: "outside.txt", action: "created" },
-    ]);
+    assert.deepEqual(await filesTouched(wt), [{ path: "outside.txt", action: "created" }]);
   } finally {
     await cleanupWorktree(repo, wt, { keepBranch: false });
     rmSync(root, { recursive: true, force: true });

@@ -37,7 +37,7 @@ export function runCodexWorker(
   spec: DispatchSpec,
   profile: WorkerProfile,
   worktreePath: string,
-  cb: WorkerCallbacks = {}
+  cb: WorkerCallbacks = {},
 ): Promise<WorkerOutcome> {
   const startedAt = Date.now();
   const scratch = mkdtempSync(join(tmpdir(), "proxenos-"));
@@ -49,10 +49,14 @@ export function runCodexWorker(
     "exec",
     "--json",
     "--ephemeral",
-    "-C", worktreePath,
-    "-s", profile.sandbox,
-    "--output-schema", schemaPath,
-    "-o", lastMessagePath,
+    "-C",
+    worktreePath,
+    "-s",
+    profile.sandbox,
+    "--output-schema",
+    schemaPath,
+    "-o",
+    lastMessagePath,
     ...(profile.model ? ["-m", profile.model] : []),
     ...profile.extraArgs,
     buildPrompt(spec),
@@ -109,7 +113,9 @@ export function runCodexWorker(
       }
     }, 500);
 
-    child.on("error", (err) => settle("failed", null, `failed to spawn '${profile.codexBin}': ${err.message}`));
+    child.on("error", (err) =>
+      settle("failed", null, `failed to spawn '${profile.codexBin}': ${err.message}`),
+    );
 
     child.stderr.on("data", (chunk: Buffer) => {
       stderrTail = (stderrTail + chunk.toString()).slice(-4000);
@@ -184,12 +190,14 @@ export function resolveModelLabel(profile: WorkerProfile): string {
 function modelFromExtraArgs(args: string[]): string | null {
   for (let i = 0; i < args.length; i++) {
     const a = args[i];
+    if (!a) continue;
     if (a === "-m" || a === "--model") return args[i + 1] ?? null;
     if (a.startsWith("--model=")) return a.slice("--model=".length);
     // codex config override, e.g. `-c model="gpt-5.5"`
-    if ((a === "-c" || a === "--config") && args[i + 1]) {
-      const m = /^model\s*=\s*"?([^"\s]+)"?$/.exec(args[i + 1]);
-      if (m) return m[1];
+    const configArg = args[i + 1];
+    if ((a === "-c" || a === "--config") && configArg) {
+      const model = /^model\s*=\s*"?([^"\s]+)"?$/.exec(configArg)?.[1];
+      if (model) return model;
     }
   }
   return null;
@@ -225,8 +233,8 @@ function codexConfigModel(): string | null {
     for (const raw of toml.split("\n")) {
       const line = raw.trim();
       if (line.startsWith("[")) break;
-      const m = /^model\s*=\s*"([^"]+)"/.exec(line);
-      if (m) return m[1];
+      const model = /^model\s*=\s*"([^"]+)"/.exec(line)?.[1];
+      if (model) return model;
     }
   } catch {
     // no readable config.toml — fall through to the unknown label
@@ -246,7 +254,9 @@ function extractTokens(event: Record<string, unknown>): { input: number; output:
 
 function describeEvent(event: Record<string, unknown>): string {
   const type = String(event.type ?? "event");
-  const item = event.item as { type?: string; command?: string; path?: string; text?: string } | undefined;
+  const item = event.item as
+    | { type?: string; command?: string; path?: string; text?: string }
+    | undefined;
   const detail = item?.command ?? item?.path ?? item?.type ?? "";
   const s = detail ? `${type}: ${detail}` : type;
   return s.length > 100 ? s.slice(0, 97) + "…" : s;

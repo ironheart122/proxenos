@@ -5,7 +5,12 @@ import { loadConfig, resolveWorker } from "../config.js";
 import { runCodexWorker } from "../worker/codex.js";
 import { createWorktree, diffWorktree, filesTouched, cleanupWorktree } from "./worktree.js";
 import { persistRecord } from "./store.js";
-import type { DispatchSpec, DelegationRecord, DelegationResult, DelegationStatus } from "../schemas.js";
+import type {
+  DispatchSpec,
+  DelegationRecord,
+  DelegationResult,
+  DelegationStatus,
+} from "../schemas.js";
 
 const registry = new Map<string, DelegationRecord>();
 const cancellations = new Set<string>();
@@ -67,7 +72,7 @@ export async function startDelegation(spec: DispatchSpec): Promise<DelegationRec
 
 async function runDelegation(
   record: DelegationRecord,
-  profile: ReturnType<typeof resolveWorker>
+  profile: ReturnType<typeof resolveWorker>,
 ): Promise<void> {
   const { spec, id } = record;
   const wt = {
@@ -107,25 +112,30 @@ async function runDelegation(
   // Orchestrator-side verification: the worker claiming it ran tests is not
   // trusted — this exit code is.
   let verification: DelegationResult["verification"] = null;
-  if (spec.verification && outcome.terminal === "finished" && !pathViolation && !cancellations.has(id)) {
+  if (
+    spec.verification &&
+    outcome.terminal === "finished" &&
+    !pathViolation &&
+    !cancellations.has(id)
+  ) {
     record.lastAction = "running verification";
     verification = await runVerification(
       wt.path,
       spec.verification.command,
       spec.verification.timeoutMs,
-      () => cancellations.has(id)
+      () => cancellations.has(id),
     );
   }
 
-  const cancelled = outcome.terminal === "cancelled" ||
-    (outcome.terminal === "finished" && cancellations.has(id));
+  const cancelled =
+    outcome.terminal === "cancelled" || (outcome.terminal === "finished" && cancellations.has(id));
   let status: DelegationStatus =
     outcome.terminal === "finished"
       ? cancelled
         ? "cancelled"
         : pathViolation || (verification !== null && verification.exitCode !== 0)
-        ? "failed"
-        : "completed"
+          ? "failed"
+          : "completed"
       : outcome.terminal === "timeout"
         ? "timeout"
         : outcome.terminal === "cancelled"
@@ -167,7 +177,7 @@ export function runVerification(
   cwd: string,
   command: string,
   timeoutMs: number,
-  isCancelled: () => boolean
+  isCancelled: () => boolean,
 ): Promise<NonNullable<DelegationResult["verification"]>> {
   return new Promise((resolve) => {
     if (isCancelled()) {
@@ -200,7 +210,11 @@ export function runVerification(
       clearTimeout(timer);
       clearInterval(cancelPoll);
       const output = [stdout, stderr, suffix].filter(Boolean).join("\n");
-      resolve({ command, exitCode, outputTail: output.length > 4_000 ? output.slice(-4_000) : output });
+      resolve({
+        command,
+        exitCode,
+        outputTail: output.length > 4_000 ? output.slice(-4_000) : output,
+      });
     };
     const timer = setTimeout(() => {
       terminate("timeout");
@@ -218,8 +232,12 @@ export function runVerification(
       killHard();
     };
 
-    child.stdout.on("data", (chunk: Buffer) => { stdout = append(stdout, chunk); });
-    child.stderr.on("data", (chunk: Buffer) => { stderr = append(stderr, chunk); });
+    child.stdout.on("data", (chunk: Buffer) => {
+      stdout = append(stdout, chunk);
+    });
+    child.stderr.on("data", (chunk: Buffer) => {
+      stderr = append(stderr, chunk);
+    });
     child.on("error", (err) => settle(1, `failed to start verification: ${err.message}`));
     child.on("close", (code) => {
       if (terminal === "cancelled") return settle(1, "verification cancelled");

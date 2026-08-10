@@ -18,14 +18,16 @@ test("cancellation terminates the verification process group", async () => {
   const root = mkdtempSync(join(tmpdir(), "proxenos-verification-test-"));
   const marker = join(root, "descendant-finished");
   let cancelled = false;
-  const cancelTimer = setTimeout(() => { cancelled = true; }, 50);
+  const cancelTimer = setTimeout(() => {
+    cancelled = true;
+  }, 50);
 
   try {
     const result = await runVerification(
       process.cwd(),
       `(sleep 1; touch ${shellQuote(marker)}) & wait`,
       5_000,
-      () => cancelled
+      () => cancelled,
     );
 
     assert.equal(result.exitCode, 1);

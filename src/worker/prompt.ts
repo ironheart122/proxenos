@@ -25,18 +25,22 @@ export function buildPrompt(spec: DispatchSpec): string {
       "",
       "## Write restrictions",
       `Only modify files matching: ${spec.constraints.allowedPaths.join(", ")}. ` +
-        "Writes outside these paths will fail the delegation."
+        "Writes outside these paths will fail the delegation.",
     );
   }
   if (spec.verification) {
-    parts.push("", "## Verification", `Run this before finishing and fix failures: \`${spec.verification.command}\``);
+    parts.push(
+      "",
+      "## Verification",
+      `Run this before finishing and fix failures: \`${spec.verification.command}\``,
+    );
   }
   parts.push(
     "",
     "## Final response format",
     "Your final message MUST be JSON matching the provided output schema: a short summary (<=200 words), " +
       "an `obstacles` array listing every assumption you made or issue you could not resolve " +
-      "(empty if none), and `criteriaMet` — an honest boolean for whether every acceptance criterion is satisfied."
+      "(empty if none), and `criteriaMet` — an honest boolean for whether every acceptance criterion is satisfied.",
   );
   return parts.join("\n");
 }
