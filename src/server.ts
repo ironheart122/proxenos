@@ -1,4 +1,5 @@
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
+import { createRequire } from "node:module";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
@@ -12,6 +13,9 @@ import {
 } from "./delegation/manager.js";
 import { loadConfig } from "./config.js";
 import { resolveModelLabel } from "./worker/codex.js";
+
+const packageVersion = (createRequire(import.meta.url)("../package.json") as { version: string })
+  .version;
 
 function json(payload: unknown) {
   return {
@@ -42,7 +46,7 @@ function rejectUntrustedHttpRequest(
 }
 
 function buildServer(): McpServer {
-  const server = new McpServer({ name: "proxenos", version: "0.1.1" });
+  const server = new McpServer({ name: "proxenos", version: packageVersion });
 
   server.registerTool(
     "delegate_task",
