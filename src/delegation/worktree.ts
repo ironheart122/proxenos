@@ -3,12 +3,14 @@ import { promisify } from "node:util";
 import { join } from "node:path";
 import { existsSync, mkdirSync } from "node:fs";
 import type { FileTouched } from "../schemas.js";
+import { nonInteractiveEnv } from "../util/nonInteractiveEnv.js";
 
 const exec = promisify(execFile);
 
 async function git(repo: string, args: string[]): Promise<string> {
   const { stdout } = await exec("git", ["-C", repo, ...args], {
     maxBuffer: 32 * 1024 * 1024,
+    env: nonInteractiveEnv(),
   });
   return stdout;
 }

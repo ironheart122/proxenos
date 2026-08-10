@@ -49,10 +49,18 @@ export const DispatchSpec = z.object({
         .array(z.string())
         .optional()
         .describe(
-          "Glob patterns (repo-relative) the worker may write to. Enforced after the " +
-            "run: any write outside these globs fails the delegation. Omit to allow all.",
+          "Glob patterns (repo-relative) the worker may write to. Detection, not " +
+            "containment: the worker can still attempt writes anywhere in its worktree; " +
+            "violations are caught from the diff after the run and fail the delegation. " +
+            "Omit to allow all.",
         ),
-      timeoutMs: z.number().int().positive().default(600_000),
+      timeoutMs: z
+        .number()
+        .int()
+        .positive()
+        .max(3_600_000)
+        .default(600_000)
+        .describe("Wall-clock limit for the worker in milliseconds. Ceiling: 1 hour."),
     })
     .prefault({}),
   verification: z
@@ -60,20 +68,28 @@ export const DispatchSpec = z.object({
       command: z
         .string()
         .describe(
-          "Shell command run inside the worktree after the worker finishes, e.g. 'pnpm test --filter pricing'.",
+          "Shell command run inside the worktree after the worker finishes, e.g. " +
+            "'pnpm test --filter pricing'. The worktree is a fresh checkout with no " +
+            "node_modules/ or other gitignored artifacts — a full test-suite command pays " +
+            "a dependency install first. Prefer dependency-light commands.",
         ),
       timeoutMs: z
         .number()
         .int()
         .positive()
+        .max(3_600_000)
         .default(180_000)
-        .describe("Wall-clock limit for the verification command; raise for long test suites."),
+        .describe(
+          "Wall-clock limit for the verification command; raise for long test suites. Ceiling: 1 hour.",
+        ),
     })
     .optional(),
   worker: z
     .string()
     .default("default")
-    .describe("Named worker profile from proxenos config (e.g. 'default', 'spark')."),
+    .describe(
+      "Named worker profile from proxenos config. Must match a profile returned by list_workers.",
+    ),
 });
 export type DispatchSpec = z.infer<typeof DispatchSpec>;
 

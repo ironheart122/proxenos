@@ -131,6 +131,7 @@ eval dataset later: replay old specs against new worker models and diff outcomes
 
 - Each delegation runs in its own worktree on a fresh branch. In `patch` mode, review the returned patch before applying it; in `direct` mode, review the committed delegation branch before merging it.
 - Codex runs under its own sandbox (`workspace-write` by default), scoped to the worktree via `-C`.
+- A delegation must never open an interactive prompt on the operator's terminal: workers, orchestrator git operations, and verification commands all run with commit/tag signing disabled (linked worktrees would otherwise inherit `commit.gpgsign` from your repo config and hand your TTY to pinentry) and with git/ssh credential prompts forced to fail fast.
 - Do not configure workers with `danger-full-access` unless you accept that the worker can escape the worktree sandbox.
 - `allowedPaths` globs are enforced post-hoc from the diff: out-of-bounds writes fail the delegation, but they do not prevent a worker from attempting those writes.
 - Verification runs orchestrator-side — the worker claiming tests pass is not trusted; the exit code is.
