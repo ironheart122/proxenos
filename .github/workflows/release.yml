@@ -64,7 +64,7 @@ jobs:
           sed -i -E "s/proxenos@[0-9]+\.[0-9]+\.[0-9]+/proxenos@${VERSION}/g" README.md
           git add package.json README.md
           git commit -m "chore: release v${VERSION}"
-          git tag "v${VERSION}"
+          git tag -a "v${VERSION}" -m "v${VERSION}"
           echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
 
       # OIDC needs a recent npm; Node 24's bundled npm may predate trusted
@@ -77,8 +77,10 @@ jobs:
       - name: Publish to npm (trusted publishing)
         run: npm publish
 
+      # Push the tag by name — --follow-tags skips lightweight tags silently,
+      # which left v0.1.4 unpushed on the first release.
       - name: Push bump commit and tag
-        run: git push origin dev --follow-tags
+        run: git push origin dev "v${{ steps.bump.outputs.version }}"
 
       - name: Create GitHub release
         run: gh release create "v${{ steps.bump.outputs.version }}" --generate-notes --verify-tag
