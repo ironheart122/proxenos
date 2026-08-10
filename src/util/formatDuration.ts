@@ -9,7 +9,10 @@ export function formatDuration(ms: number): string {
   }
 
   if (ms < 60_000) {
-    const seconds = (ms / 1_000).toFixed(1).replace(/\.0$/, "");
+    // Round to one decimal BEFORE branching: 59_999ms rounds to 60s, which
+    // belongs to the minutes branch, not a "60s" string.
+    const seconds = Math.round(ms / 100) / 10;
+    if (seconds >= 60) return "1m";
     return `${seconds}s`;
   }
 

@@ -5,6 +5,7 @@ import { join } from "node:path";
 import { tmpdir, homedir } from "node:os";
 import type { DispatchSpec, WorkerProfile, Usage } from "../schemas.js";
 import { buildPrompt, OUTPUT_SCHEMA } from "./prompt.js";
+import { nonInteractiveEnv } from "../util/nonInteractiveEnv.js";
 
 export interface FinishPayload {
   summary: string;
@@ -77,7 +78,7 @@ export function runCodexWorker(
     // as orphans and can keep writing into the worktree during cleanup.
     const child = spawn(profile.codexBin, args, {
       stdio: ["ignore", "pipe", "pipe"],
-      env: process.env,
+      env: nonInteractiveEnv(),
       detached: true,
     });
 

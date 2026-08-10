@@ -5,6 +5,7 @@ import { loadConfig, resolveWorker } from "../config.js";
 import { runCodexWorker } from "../worker/codex.js";
 import { createWorktree, diffWorktree, filesTouched, cleanupWorktree } from "./worktree.js";
 import { persistRecord } from "./store.js";
+import { nonInteractiveEnv } from "../util/nonInteractiveEnv.js";
 import type {
   DispatchSpec,
   DelegationRecord,
@@ -188,6 +189,7 @@ export function runVerification(
     const child = spawn("bash", ["-c", command], {
       cwd,
       stdio: ["ignore", "pipe", "pipe"],
+      env: nonInteractiveEnv(),
       detached: true,
     });
     let stdout = "";
