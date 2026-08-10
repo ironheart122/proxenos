@@ -146,9 +146,14 @@ real cost even at $0. The `usage.quota` field (`chatgpt-subscription` | `api` |
 `unknown`, detected from codex's cached auth) exists so orchestrators can
 reason about this.
 
-Also note: each worktree is a fresh checkout — no `node_modules`. A worker that
-needs dependencies pays the install in wall time _and_ tokens; keep verification
-commands dependency-light where you can.
+Also note: each worktree starts as a fresh checkout. When the repo has a
+recognized lockfile (pnpm/npm/bun/yarn) and gitignores `node_modules`, proxenos
+pre-installs dependencies into the worktree with a frozen, offline-preferring
+install before the worker starts
+— run orchestrator-side, where your package-manager store is available, so a
+warm install is seconds. If the pre-install fails, the delegation proceeds cold
+(as before) and the failure is reported in the result's `obstacles`. Other
+gitignored artifacts (e.g. a prebuilt `dist/`) are still absent.
 
 ## License
 
